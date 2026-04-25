@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Content Security Policy: batasi sumber script & style -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' https://cdn.jsdelivr.net https://www.gstatic.com 'unsafe-inline';
+        style-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline';
+        font-src https://cdnjs.cloudflare.com;
+        img-src * data: blob:;
+        connect-src https://*.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com;
+    ">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <title>Admin Panel - HIMA Akuntansi UT Bandung</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Area Notifikasi -->
+<div id="notificationArea"></div>
+
+<!-- ===================== LAYAR LOGIN ===================== -->
+<div id="loginScreen">
+    <div class="card p-4 shadow-lg login-card">
+        <div class="text-center mb-4">
+            <div class="bg-primary rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 70px; height: 70px;">
+                <i class="fas fa-user-shield fs-2 text-white"></i>
+            </div>
+            <h4 class="fw-bold">Login Admin</h4>
+            <p class="text-muted small">HIMA Akuntansi UT Bandung</p>
+        </div>
+        <div id="loginError" class="alert alert-danger d-none small py-2 text-center" role="alert"></div>
+        <form id="loginForm" novalidate>
+            <div class="mb-3">
+                <label class="form-label text-muted small fw-bold" for="loginUsername">Username Admin</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-user"></i></span>
+                    <input type="text" class="form-control" id="loginUsername" required placeholder="Contoh: admin" autocomplete="username" maxlength="50">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label text-muted small fw-bold" for="loginPassword">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-lock"></i></span>
+                    <input type="password" class="form-control" id="loginPassword" required placeholder="••••••••" autocomplete="current-password" maxlength="100">
+                    <button class="btn btn-outline-secondary" type="button" id="btnTogglePass" tabindex="-1">
+                        <i class="fas fa-eye" id="iconTogglePass"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Rate limiting info (ditangani di JS) -->
+            <div id="lockoutInfo" class="alert alert-warning d-none small py-2 text-center mb-3"></div>
+            <button type="submit" id="btnLogin" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">
+                <i class="fas fa-sign-in-alt me-2"></i> Masuk
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ===================== LAYOUT ADMIN ===================== -->
+<div class="container-fluid" id="adminLayout" style="display: none;">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block sidebar py-4 d-flex flex-column">
+            <div class="text-center mb-4">
+                <div class="bg-white rounded-circle d-inline-flex justify-content-center align-items-center mb-2" style="width: 60px; height: 60px;">
+                    <i class="fas fa-user-shield fs-3 text-dark"></i>
+                </div>
+                <h6 class="fw-bold text-white mb-0">Admin Panel</h6>
+                <small class="text-muted" id="adminNameDisplay">HIMA Akuntansi UT</small>
+            </div>
+            <hr class="text-secondary">
+            <ul class="nav flex-column px-2" id="sidebarMenu">
+                <li class="nav-item">
+                    <a class="nav-link active" data-target="section-beranda" role="button" tabindex="0">
+                        <i class="fas fa-home me-2"></i> Beranda
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-target="section-kegiatan" role="button" tabindex="0">
+                        <i class="fas fa-calendar-alt me-2"></i> Kegiatan
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-target="section-struktur" role="button" tabindex="0">
+                        <i class="fas fa-sitemap me-2"></i> Struktur
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-target="section-kontak" role="button" tabindex="0">
+                        <i class="fas fa-address-book me-2"></i> Kontak
+                    </a>
+                </li>
+            </ul>
+            <div class="mt-auto px-2 pb-2">
+                <hr class="text-secondary">
+                <a class="nav-link text-danger fw-bold" id="btnLogout" role="button" tabindex="0" style="cursor:pointer;">
+                    <i class="fas fa-sign-out-alt me-2"></i> Keluar (Logout)
+                </a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+            <div id="configWarning" class="alert alert-warning shadow-sm d-none" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Perhatian:</strong> Konfigurasi Firebase belum diatur. Edit file <code>js/firebase-config.js</code>.
+            </div>
+
+            <!-- ===== SECTION BERANDA ===== -->
+            <div id="section-beranda" class="admin-section active">
+                <div class="d-flex justify-content-between align-items-center pb-3 mb-4 border-bottom">
+                    <h2 class="fw-bold text-dark">Manajemen Beranda</h2>
+                    <button type="button" id="btnSaveBeranda" class="btn btn-primary shadow-sm btn-save-custom">
+                        <i class="fas fa-save me-2"></i> Simpan Beranda
+                    </button>
+                </div>
+                <div class="row">
+                    <div class="col-lg-12 mb-4">
+                        <div class="card p-4 shadow-sm border-0 border-top border-4 border-primary">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title fw-bold text-primary mb-0"><i class="fas fa-images me-2"></i> Banner Utama (Slider)</h5>
+                                <button class="btn btn-outline-primary btn-sm" id="btnAddSlide"><i class="fas fa-plus me-1"></i> Tambah Foto</button>
+                            </div>
+                            <div id="heroContainer"><div class="text-center py-2 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Memuat slider...</div></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-12 mb-4">
+                        <div class="card p-4 shadow-sm mb-4">
+                            <h5 class="card-title mb-3 fw-bold text-primary"><i class="fas fa-info-circle me-2"></i> Tentang Kami</h5>
+                            <textarea class="form-control bg-light" id="aboutDesc" rows="3" maxlength="1000" placeholder="Deskripsi singkat tentang HIMA..."></textarea>
+                        </div>
+                        <div class="card p-4 shadow-sm">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title fw-bold text-primary mb-0"><i class="fas fa-list-ol me-2"></i> Visi & Misi</h5>
+                                <button class="btn btn-outline-primary btn-sm" id="btnAddMisi"><i class="fas fa-plus me-1"></i> Tambah Misi</button>
+                            </div>
+                            <div id="misiContainer"><div class="text-center py-2 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Memuat data...</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== SECTION KEGIATAN ===== -->
+            <div id="section-kegiatan" class="admin-section">
+                <div class="d-flex justify-content-between align-items-center pb-3 mb-4 border-bottom">
+                    <h2 class="fw-bold text-dark">Manajemen Kegiatan</h2>
+                    <button type="button" class="btn btn-primary shadow-sm" id="btnOpenTambahKegiatan">
+                        <i class="fas fa-plus me-2"></i> Tambah Kegiatan
+                    </button>
+                </div>
+                <div class="card p-4 shadow-sm">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Gambar</th>
+                                    <th>Judul Kegiatan</th>
+                                    <th>Kategori</th>
+                                    <th>Tanggal</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBodyKegiatan">
+                                <tr><td colspan="5" class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i>Memuat daftar kegiatan...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== SECTION STRUKTUR ===== -->
+            <div id="section-struktur" class="admin-section">
+                <div class="d-flex justify-content-between align-items-center pb-3 mb-4 border-bottom">
+                    <h2 class="fw-bold text-dark">Manajemen Struktur Organisasi</h2>
+                    <div>
+                        <button class="btn btn-outline-success me-2" id="btnAddPeriode"><i class="fas fa-calendar-plus me-1"></i> Periode Baru</button>
+                        <button type="button" id="btnSaveStruktur" class="btn btn-primary shadow-sm btn-save-custom">
+                            <i class="fas fa-save me-2"></i> Simpan Struktur
+                        </button>
+                    </div>
+                </div>
+                <div class="card p-4 shadow-sm mb-4 border-0">
+                    <div class="row align-items-center">
+                        <div class="col-md-auto">
+                            <label class="form-label fw-bold mb-0" for="selectPeriode">Pilih Periode Kepengurusan:</label>
+                        </div>
+                        <div class="col-md-4">
+                            <select class="form-select border-primary fw-bold" id="selectPeriode"></select>
+                        </div>
+                    </div>
+                </div>
+                <div id="strukturEditorArea" style="display: none;">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card p-4 shadow-sm h-100 border-top border-4 border-warning">
+                                <h5 class="fw-bold text-dark"><i class="fas fa-crown text-warning me-2"></i> Ketua HIMA</h5>
+                                <label class="small text-muted fw-bold mt-2">Nama Lengkap</label>
+                                <input type="text" class="form-control mb-3" id="ketuaNama" placeholder="Nama Ketua" maxlength="100">
+                                <label class="small text-muted fw-bold">Foto</label>
+                                <div id="ketuaImgWrapper"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mt-3 mt-md-0">
+                            <div class="card p-4 shadow-sm h-100 border-top border-4 border-info">
+                                <h5 class="fw-bold text-dark"><i class="fas fa-star text-info me-2"></i> Wakil Ketua</h5>
+                                <label class="small text-muted fw-bold mt-2">Nama Lengkap</label>
+                                <input type="text" class="form-control mb-3" id="wakilNama" placeholder="Nama Wakil" maxlength="100">
+                                <label class="small text-muted fw-bold">Foto</label>
+                                <div id="wakilImgWrapper"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-4 shadow-sm mb-4 border-0">
+                        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                            <h5 class="fw-bold text-primary mb-0"><i class="fas fa-users-cog me-2"></i> Daftar Divisi</h5>
+                            <button class="btn btn-sm btn-outline-primary" id="btnAddDivisi"><i class="fas fa-plus me-1"></i> Tambah Divisi</button>
+                        </div>
+                        <div id="divisiContainer"></div>
+                    </div>
+                    <div class="card p-4 shadow-sm mb-4 border-0">
+                        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                            <h5 class="fw-bold text-success mb-0"><i class="fas fa-images me-2"></i> Galeri Dokumentasi</h5>
+                            <button class="btn btn-sm btn-outline-success" id="btnAddGaleri"><i class="fas fa-plus me-1"></i> Tambah Foto</button>
+                        </div>
+                        <div id="galeriContainer" class="row g-3"></div>
+                    </div>
+                </div>
+                <div id="strukturEmptyState" class="text-center py-5">
+                    <i class="fas fa-sitemap fa-3x text-muted mb-3 d-block"></i>
+                    <p class="text-muted fw-bold">Pilih periode di atas atau buat periode baru untuk mulai mengedit struktur organisasi.</p>
+                </div>
+            </div>
+
+            <!-- ===== SECTION KONTAK ===== -->
+            <div id="section-kontak" class="admin-section">
+                <div class="d-flex justify-content-between align-items-center pb-3 mb-4 border-bottom">
+                    <h2 class="fw-bold text-dark">Manajemen Kontak</h2>
+                    <button type="button" id="btnSaveKontak" class="btn btn-primary shadow-sm btn-save-custom">
+                        <i class="fas fa-save me-2"></i> Simpan Kontak
+                    </button>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card p-4 shadow-sm h-100">
+                            <h5 class="fw-bold text-primary mb-4"><i class="fas fa-address-card me-2"></i> Info Utama</h5>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold" for="kontakEmail">Alamat Email HIMA</label>
+                                <input type="email" class="form-control" id="kontakEmail" maxlength="100">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold" for="kontakPhone">Nomor Telepon / WA (Pakai +62)</label>
+                                <input type="tel" class="form-control" id="kontakPhone" maxlength="20" pattern="^\+?[0-9\s\-]{8,20}$">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold" for="kontakAddress">Alamat Sekretariat</label>
+                                <textarea class="form-control" id="kontakAddress" rows="3" maxlength="300"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card p-4 shadow-sm h-100">
+                            <h5 class="fw-bold text-primary mb-4"><i class="fas fa-hashtag me-2"></i> Sosial Media</h5>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold" for="kontakIg"><i class="fab fa-instagram text-danger me-1"></i> Instagram (contoh: @hima_ut)</label>
+                                <input type="text" class="form-control" id="kontakIg" maxlength="50" pattern="^@?[a-zA-Z0-9._]{1,30}$">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold" for="kontakTwitter"><i class="fab fa-twitter text-info me-1"></i> Twitter</label>
+                                <input type="text" class="form-control" id="kontakTwitter" maxlength="50">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold" for="kontakLinkedin"><i class="fab fa-linkedin text-primary me-1"></i> LinkedIn (Slug)</label>
+                                <input type="text" class="form-control" id="kontakLinkedin" maxlength="100">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- ===================== MODAL TAMBAH KEGIATAN ===================== -->
+<!-- 
+    BUG FIX: Modal ini sebelumnya menggunakan data-bs-toggle dan data-bs-target
+    langsung dari tombol, yang menyebabkan bootstrap.Modal.getInstance() mengembalikan
+    null karena instance dibuat secara implisit. Sekarang modal dibuka secara
+    programatik (new bootstrap.Modal) agar instance tersimpan dan bisa ditutup
+    dengan benar setelah form disimpan.
+-->
+<div class="modal fade" id="modalAddKegiatan" tabindex="-1" aria-labelledby="modalKegiatanLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="modalKegiatanLabel"><i class="fas fa-calendar-plus me-2"></i> Tambah Kegiatan Baru</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formKegiatanBaru" novalidate>
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label class="form-label fw-bold small" for="kegTitle">Judul Kegiatan</label>
+                    <input type="text" class="form-control" id="kegTitle" required maxlength="150" placeholder="Judul kegiatan yang jelas">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold small" for="kegDate">Tanggal / Waktu</label>
+                    <input type="text" class="form-control" id="kegDate" placeholder="Misal: 25 Okt 2024" required maxlength="50">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold small" for="kegCategory">Kategori</label>
+                    <select class="form-select" id="kegCategory" required>
+                        <option value="Seminar">Seminar</option>
+                        <option value="Workshop">Workshop</option>
+                        <option value="Sosial">Sosial / Baksos</option>
+                        <option value="Lomba">Lomba / Kompetisi</option>
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold small" for="kegImage">URL Gambar (Link Foto)</label>
+                    <input type="url" class="form-control" id="kegImage" placeholder="https://..." required maxlength="500">
+                </div>
+                <div class="col-12 mb-3">
+                    <label class="form-label fw-bold small" for="kegShortDesc">Deskripsi Singkat (Muncul di daftar)</label>
+                    <textarea class="form-control" id="kegShortDesc" rows="2" maxlength="150" required placeholder="Maksimal 150 karakter..."></textarea>
+                    <div class="form-text text-end" id="shortDescCount">0/150</div>
+                </div>
+                <div class="col-12 mb-3">
+                    <label class="form-label fw-bold small" for="kegFullDesc">Deskripsi Lengkap (Muncul saat diklik)</label>
+                    <textarea class="form-control" id="kegFullDesc" rows="4" required placeholder="Deskripsi lengkap kegiatan..." maxlength="2000"></textarea>
+                </div>
+            </div>
+            <div id="kegiatanFormError" class="alert alert-danger d-none small py-2"></div>
+            <div class="text-end mt-3">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary" id="btnSimpanKegiatanBaru">
+                    <i class="fas fa-save me-1"></i> Simpan Kegiatan
+                </button>
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
