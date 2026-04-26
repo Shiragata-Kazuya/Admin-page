@@ -324,7 +324,16 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold small" for="kegImage">URL Gambar (Link Foto)</label>
-                    <input type="url" class="form-control" id="kegImage" placeholder="https://..." required maxlength="500">
+                    <input type="url" class="form-control mb-2" id="kegImage" placeholder="https://..." required maxlength="500">
+                    <div class="d-flex align-items-center gap-2">
+                        <div id="kegMiniPreview" style="width:56px;height:40px;border-radius:6px;flex-shrink:0;border:2px solid #dee2e6;background-color:#e9ecef;background-repeat:no-repeat;background-size:100%;background-position:50% 50%;"></div>
+                        <div class="flex-fill">
+                            <span id="kegImgPosBadge" style="font-size:10px;color:#adb5bd;display:block;margin-bottom:3px;">zoom:1.0x pos:50/50</span>
+                            <button type="button" id="btnAturFotoKegiatan" class="btn btn-outline-primary btn-sm w-100 py-1" style="font-size:12px;">
+                                <i class="fas fa-crop-alt me-1"></i>Atur Posisi &amp; Zoom
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-12 mb-3">
                     <label class="form-label fw-bold small" for="kegShortDesc">Deskripsi Singkat (Muncul di daftar)</label>
