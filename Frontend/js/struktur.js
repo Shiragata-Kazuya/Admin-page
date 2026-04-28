@@ -411,7 +411,7 @@ function createPhotoInputGroup(imgUrl = '', posX = 50, posY = 20, scale = 1, pla
         const url = this.value.trim();
         miniCircle.style.backgroundImage = isSafeUrl(url) ? `url('${url}')` : 'none';
         const editorModal = document.getElementById('imgEditorModal');
-        if (editorModal?.style.display === 'flex') {
+        if (editorModal?.style.display === 'block') {
             const frame = document.getElementById('imgEditorFrame');
             const ph    = document.getElementById('imgEditorPlaceholder');
             if (isSafeUrl(url)) {
@@ -611,7 +611,8 @@ function _createAnggotaRow(ang = {}) {
 // ═══════════════════════════════════════════════════════════════
 function addGaleriUI(galData = { url: '', caption: '', posX: 50, posY: 50, scale: 1 }) {
     const galEl   = document.createElement('div');
-    galEl.className = 'col-md-4 col-lg-3 galeri-item';
+    galEl.className = 'galeri-item';
+    galEl.style.cssText = 'display:inline-block;width:200px;vertical-align:top;margin:0 8px 12px 0;';
 
     const safeUrl = isSafeUrl(galData.url) ? galData.url : '';
     const posX    = galData.posX  ?? 50;
@@ -664,7 +665,7 @@ function addGaleriUI(galData = { url: '', caption: '', posX: 50, posY: 50, scale
         bgPreview.style.backgroundImage = isSafeUrl(url) ? `url('${url}')` : 'none';
         // Sync ke frame rect di modal jika sedang terbuka
         const editorModal = document.getElementById('imgEditorModal');
-        if (editorModal?.style.display === 'flex') {
+        if (editorModal?.style.display === 'block') {
             const frameRect = document.getElementById('imgEditorFrameRect');
             const phRect    = document.getElementById('imgEditorPlaceholderRect');
             if (isSafeUrl(url)) {
