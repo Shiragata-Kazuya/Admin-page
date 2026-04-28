@@ -611,8 +611,7 @@ function _createAnggotaRow(ang = {}) {
 // ═══════════════════════════════════════════════════════════════
 function addGaleriUI(galData = { url: '', caption: '', posX: 50, posY: 50, scale: 1 }) {
     const galEl   = document.createElement('div');
-    galEl.className = 'galeri-item';
-    galEl.style.cssText = 'display:inline-block;width:200px;vertical-align:top;margin:0 8px 12px 0;';
+    galEl.className = 'col-6 col-md-4 col-lg-3 galeri-item';
 
     const safeUrl = isSafeUrl(galData.url) ? galData.url : '';
     const posX    = galData.posX  ?? 50;
