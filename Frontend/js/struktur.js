@@ -57,12 +57,12 @@ function _initImageEditorModal() {
 
     const modal = document.createElement('div');
     modal.id = 'imgEditorModal';
-    modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);justify-content:center;align-items:center;';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);overflow-y:auto;';
 
     modal.innerHTML = `
         <div style="
             background:#fff; border-radius:16px; width:min(500px,95vw);
-            max-height:92vh; display:flex; flex-direction:column;
+            margin:24px auto; display:flex; flex-direction:column;
             box-shadow:0 25px 60px rgba(0,0,0,0.4); overflow:hidden;">
 
             <!-- ── HEADER (sticky atas) ── -->
@@ -75,8 +75,8 @@ function _initImageEditorModal() {
                 <button id="imgEditorClose" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>
             </div>
 
-            <!-- ── KONTEN TENGAH (bisa scroll jika layar kecil) ── -->
-            <div style="flex:1;overflow-y:auto;overflow-x:hidden;">
+            <!-- ── KONTEN TENGAH ── -->
+            <div style="flex:1;">
 
                 <!-- Preview -->
                 <div style="background:#f4f6f9;padding:12px 16px 8px;text-align:center;">
@@ -326,7 +326,7 @@ function _initImageEditorModal() {
         document.getElementById('slPosX').value  = posX;
         document.getElementById('slPosY').value  = posY;
         _refresh();
-        modal.style.display = 'flex';
+        modal.style.display = 'block';
     };
 
     // ── Buka editor GALERI (persegi panjang)
@@ -363,7 +363,7 @@ function _initImageEditorModal() {
         document.getElementById('slPosX').value  = posX;
         document.getElementById('slPosY').value  = posY;
         _refresh();
-        modal.style.display = 'flex';
+        modal.style.display = 'block';
     };
 }
 
