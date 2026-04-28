@@ -93,21 +93,26 @@ function _initImageEditorModal() {
                     </div>
                 </div>
 
-                <!-- Bingkai galeri (persegi panjang, tersembunyi default) -->
-                <div id="imgEditorFrameRect" style="
+                <!-- Bingkai galeri (persegi panjang responsif, rasio 4:3) -->
+                <div id="imgEditorFrameRectOuter" style="
                     display:none;
-                    width:280px; height:160px; border-radius:10px;
-                    border:3px solid #0a192f; margin:0 auto 8px;
-                    background-color:#e9ecef; background-repeat:no-repeat;
-                    background-size:100%; background-position:50% 50%;
-                    cursor:grab; user-select:none;
-                    box-shadow:0 4px 20px rgba(0,0,0,0.25);
-                    position:relative; overflow:hidden;">
-                    <div id="imgEditorPlaceholderRect" style="
-                        position:absolute;inset:0;display:flex;flex-direction:column;
-                        align-items:center;justify-content:center;color:#adb5bd;font-size:12px;">
-                        <i class="fas fa-image fa-2x mb-1"></i>
-                        <span>Belum ada foto</span>
+                    width:min(320px, 80vw);
+                    margin:0 auto 8px;">
+                    <!-- Wrapper rasio 4:3 pakai padding-top trick -->
+                    <div style="position:relative; width:100%; padding-top:75%; border-radius:10px; overflow:hidden;
+                                border:3px solid #0a192f; box-shadow:0 4px 20px rgba(0,0,0,0.25);">
+                        <div id="imgEditorFrameRect" style="
+                            position:absolute; inset:0;
+                            background-color:#e9ecef; background-repeat:no-repeat;
+                            background-size:100%; background-position:50% 50%;
+                            cursor:grab; user-select:none;">
+                            <div id="imgEditorPlaceholderRect" style="
+                                position:absolute;inset:0;display:flex;flex-direction:column;
+                                align-items:center;justify-content:center;color:#adb5bd;font-size:12px;">
+                                <i class="fas fa-image fa-2x mb-1"></i>
+                                <span>Belum ada foto</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -289,13 +294,13 @@ function _initImageEditorModal() {
         const posY  = parseFloat(container.dataset.posY  ?? 20);
         const scale = parseFloat(container.dataset.scale ?? 1);
 
-        const frame      = document.getElementById('imgEditorFrame');
-        const frameRect  = document.getElementById('imgEditorFrameRect');
-        const ph         = document.getElementById('imgEditorPlaceholder');
-        const phRect     = document.getElementById('imgEditorPlaceholderRect');
+        const frame          = document.getElementById('imgEditorFrame');
+        const frameRectOuter = document.getElementById('imgEditorFrameRectOuter');
+        const ph             = document.getElementById('imgEditorPlaceholder');
+        const phRect         = document.getElementById('imgEditorPlaceholderRect');
 
-        frame.style.display     = 'block';
-        frameRect.style.display = 'none';
+        frame.style.display          = 'block';
+        frameRectOuter.style.display = 'none';
 
         document.getElementById('imgEditorTitle').innerHTML =
             '<i class="fas fa-crop-alt me-2"></i>Atur Posisi &amp; Zoom Foto Profil';
@@ -326,13 +331,13 @@ function _initImageEditorModal() {
         const posY  = parseFloat(container.dataset.posY  ?? 50);
         const scale = parseFloat(container.dataset.scale ?? 1);
 
-        const frame      = document.getElementById('imgEditorFrame');
-        const frameRect  = document.getElementById('imgEditorFrameRect');
-        const ph         = document.getElementById('imgEditorPlaceholder');
-        const phRect     = document.getElementById('imgEditorPlaceholderRect');
+        const frame          = document.getElementById('imgEditorFrame');
+        const frameRectOuter = document.getElementById('imgEditorFrameRectOuter');
+        const ph             = document.getElementById('imgEditorPlaceholder');
+        const phRect         = document.getElementById('imgEditorPlaceholderRect');
 
-        frame.style.display     = 'none';
-        frameRect.style.display = 'block';
+        frame.style.display          = 'none';
+        frameRectOuter.style.display = 'block';
 
         document.getElementById('imgEditorTitle').innerHTML =
             '<i class="fas fa-crop-alt me-2"></i>Atur Posisi &amp; Zoom Foto Galeri';
