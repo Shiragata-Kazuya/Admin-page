@@ -341,6 +341,7 @@ function _initImageEditorModal() {
 
         const frame          = document.getElementById('imgEditorFrame');
         const frameRectOuter = document.getElementById('imgEditorFrameRectOuter');
+        const frameRect      = document.getElementById('imgEditorFrameRect');
         const ph             = document.getElementById('imgEditorPlaceholder');
         const phRect         = document.getElementById('imgEditorPlaceholderRect');
 
