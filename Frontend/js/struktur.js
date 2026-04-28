@@ -1,14 +1,15 @@
 /**
  * struktur.js  –  Modul Manajemen Struktur Organisasi (ADMIN)
  *
- * FIX: Preview lingkaran sekarang pakai background-image (bukan <img>)
- * agar zoom + posisi bekerja benar — sama persis dengan tampilan frontend.
+ * PERUBAHAN:
+ *  - Galeri foto sekarang support posisi & zoom (posX, posY, scale)
+ *  - Tombol "Atur Posisi & Zoom" di setiap item galeri
+ *  - Modal editor galeri pakai _openImgEditor yang sama dengan foto profil
+ *  - Data galeri tersimpan: { url, caption, posX, posY, scale }
  *
- * Cara kerja:
- *   background-size  = scale * 100%   → kontrol zoom
- *   background-position = posX% posY% → kontrol posisi
- *
- * Data disimpan ke Firestore: { name, img, posX, posY, scale }
+ * Cara kerja preview galeri:
+ *   background-size     = scale * 100%
+ *   background-position = posX% posY%
  */
 
 import { getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
@@ -34,185 +35,12 @@ export function initStruktur(refs) {
     });
 
     _initImageEditorModal();
-    _initGaleriImgEditorModal();
     loadStrukturData();
 }
 
 // ═══════════════════════════════════════════════════════════════
-// IMAGE EDITOR MODAL KHUSUS GALERI (landscape 4:3)
+// HELPER: background-size & background-position dari nilai
 // ═══════════════════════════════════════════════════════════════
-let _activeGalCard = null;
-
-function _initGaleriImgEditorModal() {
-    if (document.getElementById('galImgEditorModal')) return;
-
-    const modal = document.createElement('div');
-    modal.id = 'galImgEditorModal';
-    modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.75);justify-content:center;align-items:center;';
-
-    modal.innerHTML = `
-        <div style="background:#fff;border-radius:16px;width:min(540px,95vw);overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,0.4);">
-            <div style="background:#198754;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-weight:700;font-size:15px;">
-                    <i class="fas fa-images me-2"></i>Atur Posisi &amp; Zoom Foto Galeri
-                </span>
-                <button id="galImgEditorClose" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;">&times;</button>
-            </div>
-            <div style="background:#f4f6f9;padding:18px;text-align:center;">
-                <p style="font-size:12px;color:#6c757d;margin-bottom:10px;">
-                    <i class="fas fa-info-circle me-1 text-success"></i>
-                    Preview <strong>persis seperti kartu galeri</strong> di website (rasio 4:3). Drag atau pakai slider.
-                </p>
-                <div id="galImgEditorFrame" style="
-                    width:320px;height:240px;border-radius:10px;
-                    border:3px solid #198754;margin:0 auto 8px;
-                    background-color:#e9ecef;background-repeat:no-repeat;
-                    background-size:100%;background-position:50% 50%;
-                    cursor:grab;user-select:none;
-                    box-shadow:0 4px 20px rgba(0,0,0,0.2);
-                    position:relative;overflow:hidden;
-                ">
-                    <div id="galImgEditorPH" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#adb5bd;font-size:13px;">
-                        <i class="fas fa-image fa-2x mb-2"></i><span>Masukkan URL foto dulu</span>
-                    </div>
-                </div>
-                <p style="font-size:11px;color:#adb5bd;"><i class="fas fa-mouse me-1"></i>Drag untuk geser &nbsp;|&nbsp; Scroll untuk zoom</p>
-            </div>
-            <div style="padding:16px 20px 20px;">
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <label style="font-size:13px;font-weight:700;color:#495057;"><i class="fas fa-search me-1 text-primary"></i>Zoom</label>
-                        <span id="galLblScale" style="font-size:13px;font-weight:700;color:#0d6efd;">1.0×</span>
-                    </div>
-                    <input type="range" id="galSlScale" min="0.5" max="3" step="0.05" value="1" class="form-range">
-                    <div class="d-flex justify-content-between" style="font-size:11px;color:#adb5bd;"><span>0.5×</span><span>3.0×</span></div>
-                </div>
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <label style="font-size:13px;font-weight:700;color:#495057;"><i class="fas fa-arrows-alt-h me-1 text-success"></i>Geser Kiri ↔ Kanan</label>
-                        <span id="galLblPosX" style="font-size:13px;font-weight:700;color:#198754;">50%</span>
-                    </div>
-                    <input type="range" id="galSlPosX" min="0" max="100" step="1" value="50" class="form-range">
-                    <div class="d-flex justify-content-between" style="font-size:11px;color:#adb5bd;"><span>← Kiri</span><span>Kanan →</span></div>
-                </div>
-                <div class="mb-4">
-                    <div class="d-flex justify-content-between mb-1">
-                        <label style="font-size:13px;font-weight:700;color:#495057;"><i class="fas fa-arrows-alt-v me-1 text-warning"></i>Geser Atas ↕ Bawah</label>
-                        <span id="galLblPosY" style="font-size:13px;font-weight:700;color:#ffc107;">50%</span>
-                    </div>
-                    <input type="range" id="galSlPosY" min="0" max="100" step="1" value="50" class="form-range">
-                    <div class="d-flex justify-content-between" style="font-size:11px;color:#adb5bd;"><span>↑ Atas</span><span>Bawah ↓</span></div>
-                </div>
-                <div class="d-flex gap-2">
-                    <button id="galImgEditorReset" class="btn btn-outline-secondary btn-sm flex-fill"><i class="fas fa-undo me-1"></i>Reset</button>
-                    <button id="galImgEditorApply" class="btn btn-success btn-sm flex-fill fw-bold"><i class="fas fa-check me-1"></i>Terapkan</button>
-                </div>
-            </div>
-        </div>`;
-
-    document.body.appendChild(modal);
-
-    let _drag = false, _lx = 0, _ly = 0;
-
-    function _refresh() {
-        const frame = document.getElementById('galImgEditorFrame');
-        const scale = parseFloat(document.getElementById('galSlScale').value);
-        const posX  = parseFloat(document.getElementById('galSlPosX').value);
-        const posY  = parseFloat(document.getElementById('galSlPosY').value);
-        frame.style.backgroundSize     = `${scale * 100}%`;
-        frame.style.backgroundPosition = `${posX}% ${posY}%`;
-        document.getElementById('galLblScale').textContent = `${scale.toFixed(2)}×`;
-        document.getElementById('galLblPosX').textContent  = `${Math.round(posX)}%`;
-        document.getElementById('galLblPosY').textContent  = `${Math.round(posY)}%`;
-    }
-
-    ['galSlScale','galSlPosX','galSlPosY'].forEach(id =>
-        document.getElementById(id).addEventListener('input', _refresh)
-    );
-
-    const frame = document.getElementById('galImgEditorFrame');
-    frame.addEventListener('mousedown', e => { _drag=true; _lx=e.clientX; _ly=e.clientY; frame.style.cursor='grabbing'; });
-    window.addEventListener('mousemove', e => {
-        if (!_drag) return;
-        const sx = document.getElementById('galSlPosX');
-        const sy = document.getElementById('galSlPosY');
-        sx.value = Math.min(100, Math.max(0, parseFloat(sx.value) - (e.clientX-_lx)*0.3));
-        sy.value = Math.min(100, Math.max(0, parseFloat(sy.value) - (e.clientY-_ly)*0.3));
-        _lx=e.clientX; _ly=e.clientY; _refresh();
-    });
-    window.addEventListener('mouseup', () => { _drag=false; frame.style.cursor='grab'; });
-    frame.addEventListener('wheel', e => {
-        e.preventDefault();
-        const sl = document.getElementById('galSlScale');
-        sl.value = Math.min(3, Math.max(0.5, parseFloat(sl.value)+(e.deltaY<0?0.1:-0.1)));
-        _refresh();
-    }, { passive: false });
-
-    document.getElementById('galImgEditorClose').addEventListener('click', () => { modal.style.display='none'; });
-    modal.addEventListener('click', e => { if (e.target===modal) modal.style.display='none'; });
-
-    document.getElementById('galImgEditorReset').addEventListener('click', () => {
-        document.getElementById('galSlScale').value=1;
-        document.getElementById('galSlPosX').value=50;
-        document.getElementById('galSlPosY').value=50;
-        _refresh();
-    });
-
-    document.getElementById('galImgEditorApply').addEventListener('click', () => {
-        if (!_activeGalCard) return;
-        const scale = parseFloat(document.getElementById('galSlScale').value);
-        const posX  = parseFloat(document.getElementById('galSlPosX').value);
-        const posY  = parseFloat(document.getElementById('galSlPosY').value);
-
-        _activeGalCard.dataset.posX  = posX;
-        _activeGalCard.dataset.posY  = posY;
-        _activeGalCard.dataset.scale = scale;
-
-        // Update preview & badge di card galeri
-        const preview = _activeGalCard.querySelector('.galeri-preview');
-        const badge   = _activeGalCard.querySelector('.galeri-pos-badge');
-        if (preview) {
-            preview.style.backgroundSize     = `${scale * 100}%`;
-            preview.style.backgroundPosition = `${posX}% ${posY}%`;
-        }
-        if (badge) {
-            badge.textContent = `zoom:${scale.toFixed(1)}x pos:${Math.round(posX)}/${Math.round(posY)}`;
-            badge.style.color = '#198754';
-        }
-
-        modal.style.display = 'none';
-        showNotification('Posisi foto galeri diatur! Jangan lupa Simpan Struktur.', 'info');
-    });
-}
-
-function _openGaleriImgEditor(card, url) {
-    _activeGalCard = card;
-    const frame = document.getElementById('galImgEditorFrame');
-    const ph    = document.getElementById('galImgEditorPH');
-
-    if (isSafeUrl(url)) {
-        frame.style.backgroundImage = `url('${url}')`;
-        if (ph) ph.style.display = 'none';
-    } else {
-        frame.style.backgroundImage = 'none';
-        if (ph) ph.style.display = 'flex';
-    }
-
-    document.getElementById('galSlScale').value = parseFloat(card.dataset.scale ?? 1);
-    document.getElementById('galSlPosX').value  = parseFloat(card.dataset.posX  ?? 50);
-    document.getElementById('galSlPosY').value  = parseFloat(card.dataset.posY  ?? 50);
-    document.getElementById('galSlScale').dispatchEvent(new Event('input'));
-
-    document.getElementById('galImgEditorModal').style.display = 'flex';
-}
-
-// ═══════════════════════════════════════════════════════════════
-// HELPER: Hitung background-size & background-position dari nilai
-// ═══════════════════════════════════════════════════════════════
-function _toBgStyle(posX, posY, scale) {
-    return `background-size:${scale * 100}%; background-position:${posX}% ${posY}%; background-repeat:no-repeat;`;
-}
-
 function _applyBgToEl(el, url, posX, posY, scale) {
     if (!el) return;
     el.style.backgroundImage    = isSafeUrl(url) ? `url('${url}')` : 'none';
@@ -222,7 +50,7 @@ function _applyBgToEl(el, url, posX, posY, scale) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// IMAGE EDITOR MODAL
+// IMAGE EDITOR MODAL (dipakai untuk foto profil DAN foto galeri)
 // ═══════════════════════════════════════════════════════════════
 function _initImageEditorModal() {
     if (document.getElementById('imgEditorModal')) return;
@@ -235,19 +63,20 @@ function _initImageEditorModal() {
         <div style="background:#fff;border-radius:16px;width:min(500px,95vw);overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,0.4);">
             <!-- Header -->
             <div style="background:#212529;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-weight:700;font-size:15px;">
+                <span style="font-weight:700;font-size:15px;" id="imgEditorTitle">
                     <i class="fas fa-crop-alt me-2"></i>Atur Posisi &amp; Zoom Foto
                 </span>
                 <button id="imgEditorClose" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>
             </div>
 
-            <!-- Preview -->
+            <!-- Preview — bisa lingkaran (profil) atau persegi (galeri) -->
             <div style="background:#f4f6f9;padding:20px;text-align:center;">
                 <p style="font-size:12px;color:#6c757d;margin-bottom:12px;">
                     <i class="fas fa-info-circle me-1 text-primary"></i>
                     Preview <strong>persis seperti di website</strong>. Drag foto atau pakai slider.
                 </p>
-                <!-- Bingkai lingkaran pakai background-image bukan <img> -->
+
+                <!-- Bingkai profil (lingkaran) -->
                 <div id="imgEditorFrame" style="
                     width:160px; height:160px; border-radius:50%;
                     border:4px solid #0a192f; margin:0 auto 8px;
@@ -255,17 +84,33 @@ function _initImageEditorModal() {
                     background-size:100%; background-position:50% 20%;
                     cursor:grab; user-select:none;
                     box-shadow:0 4px 20px rgba(0,0,0,0.25);
-                    position:relative;
-                ">
-                    <!-- Overlay placeholder saat tidak ada foto -->
+                    position:relative;">
                     <div id="imgEditorPlaceholder" style="
                         position:absolute;inset:0;display:flex;flex-direction:column;
-                        align-items:center;justify-content:center;color:#adb5bd;font-size:12px;
-                    ">
+                        align-items:center;justify-content:center;color:#adb5bd;font-size:12px;">
                         <i class="fas fa-image fa-2x mb-1"></i>
                         <span>Belum ada foto</span>
                     </div>
                 </div>
+
+                <!-- Bingkai galeri (persegi panjang, tersembunyi default) -->
+                <div id="imgEditorFrameRect" style="
+                    display:none;
+                    width:280px; height:160px; border-radius:10px;
+                    border:3px solid #0a192f; margin:0 auto 8px;
+                    background-color:#e9ecef; background-repeat:no-repeat;
+                    background-size:100%; background-position:50% 50%;
+                    cursor:grab; user-select:none;
+                    box-shadow:0 4px 20px rgba(0,0,0,0.25);
+                    position:relative; overflow:hidden;">
+                    <div id="imgEditorPlaceholderRect" style="
+                        position:absolute;inset:0;display:flex;flex-direction:column;
+                        align-items:center;justify-content:center;color:#adb5bd;font-size:12px;">
+                        <i class="fas fa-image fa-2x mb-1"></i>
+                        <span>Belum ada foto</span>
+                    </div>
+                </div>
+
                 <p style="font-size:11px;color:#adb5bd;">
                     <i class="fas fa-mouse me-1"></i>Drag untuk geser &nbsp;|&nbsp; Scroll untuk zoom
                 </p>
@@ -285,7 +130,6 @@ function _initImageEditorModal() {
                         <span>0.5× (perkecil)</span><span>3.0× (perbesar)</span>
                     </div>
                 </div>
-
                 <div class="mb-3">
                     <div class="d-flex justify-content-between mb-1">
                         <label style="font-size:13px;font-weight:700;color:#495057;">
@@ -298,7 +142,6 @@ function _initImageEditorModal() {
                         <span>← Kiri</span><span>Kanan →</span>
                     </div>
                 </div>
-
                 <div class="mb-4">
                     <div class="d-flex justify-content-between mb-1">
                         <label style="font-size:13px;font-weight:700;color:#495057;">
@@ -311,7 +154,6 @@ function _initImageEditorModal() {
                         <span>↑ Atas</span><span>Bawah ↓</span>
                     </div>
                 </div>
-
                 <div class="d-flex gap-2">
                     <button id="imgEditorReset" class="btn btn-outline-secondary btn-sm flex-fill">
                         <i class="fas fa-undo me-1"></i>Reset
@@ -326,16 +168,20 @@ function _initImageEditorModal() {
     document.body.appendChild(modal);
 
     let _activeContainer = null;
-    let _dragging = false, _lastX = 0, _lastY = 0;
+    let _activeMode      = 'circle'; // 'circle' | 'rect'
+    let _dragging        = false, _lastX = 0, _lastY = 0;
 
-    // Refresh preview frame pakai background-image
+    // Aktif frame sesuai mode
+    const _getFrame = () => _activeMode === 'rect'
+        ? document.getElementById('imgEditorFrameRect')
+        : document.getElementById('imgEditorFrame');
+
     function _refresh() {
-        const frame = document.getElementById('imgEditorFrame');
+        const frame = _getFrame();
         const scale = parseFloat(document.getElementById('slScale').value);
         const posX  = parseFloat(document.getElementById('slPosX').value);
         const posY  = parseFloat(document.getElementById('slPosY').value);
 
-        // background-size: scale*100% agar zoom benar
         frame.style.backgroundSize     = `${scale * 100}%`;
         frame.style.backgroundPosition = `${posX}% ${posY}%`;
 
@@ -348,31 +194,38 @@ function _initImageEditorModal() {
         document.getElementById(id).addEventListener('input', _refresh)
     );
 
-    // Drag pada frame
-    const frame = document.getElementById('imgEditorFrame');
-    frame.addEventListener('mousedown', e => {
-        _dragging = true; _lastX = e.clientX; _lastY = e.clientY;
-        frame.style.cursor = 'grabbing';
+    // Drag pada kedua frame
+    ['imgEditorFrame','imgEditorFrameRect'].forEach(frameId => {
+        const el = document.getElementById(frameId);
+        el.addEventListener('mousedown', e => {
+            _dragging = true; _lastX = e.clientX; _lastY = e.clientY;
+            el.style.cursor = 'grabbing';
+        });
     });
     window.addEventListener('mousemove', e => {
         if (!_dragging) return;
+        const frame = _getFrame();
         const slX = document.getElementById('slPosX');
         const slY = document.getElementById('slPosY');
-        // Geser kanan → posX turun (foto gerak ke kiri = area terlihat geser ke kanan)
         slX.value = Math.min(100, Math.max(0, parseFloat(slX.value) - (e.clientX - _lastX) * 0.4));
         slY.value = Math.min(100, Math.max(0, parseFloat(slY.value) - (e.clientY - _lastY) * 0.4));
         _lastX = e.clientX; _lastY = e.clientY;
         _refresh();
     });
-    window.addEventListener('mouseup', () => { _dragging = false; frame.style.cursor = 'grab'; });
+    window.addEventListener('mouseup', () => {
+        _dragging = false;
+        _getFrame().style.cursor = 'grab';
+    });
 
     // Scroll zoom
-    frame.addEventListener('wheel', e => {
-        e.preventDefault();
-        const sl = document.getElementById('slScale');
-        sl.value = Math.min(3, Math.max(0.5, parseFloat(sl.value) + (e.deltaY < 0 ? 0.1 : -0.1)));
-        _refresh();
-    }, { passive: false });
+    ['imgEditorFrame','imgEditorFrameRect'].forEach(frameId => {
+        document.getElementById(frameId).addEventListener('wheel', e => {
+            e.preventDefault();
+            const sl = document.getElementById('slScale');
+            sl.value = Math.min(3, Math.max(0.5, parseFloat(sl.value) + (e.deltaY < 0 ? 0.1 : -0.1)));
+            _refresh();
+        }, { passive: false });
+    });
 
     // Close
     document.getElementById('imgEditorClose').addEventListener('click', () => { modal.style.display = 'none'; });
@@ -382,7 +235,8 @@ function _initImageEditorModal() {
     document.getElementById('imgEditorReset').addEventListener('click', () => {
         document.getElementById('slScale').value = 1;
         document.getElementById('slPosX').value  = 50;
-        document.getElementById('slPosY').value  = 20; // default sedikit ke atas
+        // galeri default center, profil default sedikit ke atas
+        document.getElementById('slPosY').value  = _activeMode === 'rect' ? 50 : 20;
         _refresh();
     });
 
@@ -397,40 +251,100 @@ function _initImageEditorModal() {
         _activeContainer.dataset.posX  = posX;
         _activeContainer.dataset.posY  = posY;
 
-        // Update badge
-        const badge = _activeContainer.querySelector('.img-pos-badge');
-        if (badge) {
-            badge.textContent = `zoom:${scale.toFixed(1)}× pos:${Math.round(posX)}/${Math.round(posY)}`;
-            badge.style.color = '#198754';
-        }
+        if (_activeMode === 'rect') {
+            // Update preview galeri
+            const prevEl = _activeContainer.querySelector('.galeri-bg-preview');
+            const url    = _activeContainer.querySelector('.galeri-url')?.value.trim() || '';
+            if (prevEl) _applyBgToEl(prevEl, url, posX, posY, scale);
 
-        // Update mini preview (juga pakai background-image)
-        const miniCircle = _activeContainer.querySelector('.photo-mini-circle');
-        const url = _activeContainer.querySelector('.photo-img-input')?.value.trim() || '';
-        if (miniCircle) _applyBgToEl(miniCircle, url, posX, posY, scale);
+            // Update badge
+            const badge = _activeContainer.querySelector('.galeri-pos-badge');
+            if (badge) {
+                badge.textContent = `zoom:${scale.toFixed(1)}× pos:${Math.round(posX)}/${Math.round(posY)}`;
+                badge.style.color = '#198754';
+            }
+        } else {
+            // Update mini preview profil
+            const badge      = _activeContainer.querySelector('.img-pos-badge');
+            const miniCircle = _activeContainer.querySelector('.photo-mini-circle');
+            const url        = _activeContainer.querySelector('.photo-img-input')?.value.trim() || '';
+            if (badge) {
+                badge.textContent = `zoom:${scale.toFixed(1)}× pos:${Math.round(posX)}/${Math.round(posY)}`;
+                badge.style.color = '#198754';
+            }
+            if (miniCircle) _applyBgToEl(miniCircle, url, posX, posY, scale);
+        }
 
         modal.style.display = 'none';
         showNotification('Posisi foto diatur. Jangan lupa klik Simpan Struktur!', 'info');
     });
 
-    // Buka editor dari tombol "Atur Foto"
+    // ── Buka editor PROFIL (lingkaran)
     window._openImgEditor = function(container) {
         _activeContainer = container;
+        _activeMode      = 'circle';
+
         const url   = container.querySelector('.photo-img-input')?.value.trim() || '';
         const posX  = parseFloat(container.dataset.posX  ?? 50);
         const posY  = parseFloat(container.dataset.posY  ?? 20);
         const scale = parseFloat(container.dataset.scale ?? 1);
 
-        const frame       = document.getElementById('imgEditorFrame');
-        const placeholder = document.getElementById('imgEditorPlaceholder');
+        const frame      = document.getElementById('imgEditorFrame');
+        const frameRect  = document.getElementById('imgEditorFrameRect');
+        const ph         = document.getElementById('imgEditorPlaceholder');
+        const phRect     = document.getElementById('imgEditorPlaceholderRect');
+
+        frame.style.display     = 'block';
+        frameRect.style.display = 'none';
+
+        document.getElementById('imgEditorTitle').innerHTML =
+            '<i class="fas fa-crop-alt me-2"></i>Atur Posisi &amp; Zoom Foto Profil';
 
         if (isSafeUrl(url)) {
             frame.style.backgroundImage = `url('${url}')`;
-            if (placeholder) placeholder.style.display = 'none';
+            if (ph) ph.style.display = 'none';
         } else {
             frame.style.backgroundImage = 'none';
-            if (placeholder) placeholder.style.display = 'flex';
+            if (ph) ph.style.display = 'flex';
         }
+        if (phRect) phRect.style.display = 'none';
+
+        document.getElementById('slScale').value = scale;
+        document.getElementById('slPosX').value  = posX;
+        document.getElementById('slPosY').value  = posY;
+        _refresh();
+        modal.style.display = 'flex';
+    };
+
+    // ── Buka editor GALERI (persegi panjang)
+    window._openGaleriEditor = function(container) {
+        _activeContainer = container;
+        _activeMode      = 'rect';
+
+        const url   = container.querySelector('.galeri-url')?.value.trim() || '';
+        const posX  = parseFloat(container.dataset.posX  ?? 50);
+        const posY  = parseFloat(container.dataset.posY  ?? 50);
+        const scale = parseFloat(container.dataset.scale ?? 1);
+
+        const frame      = document.getElementById('imgEditorFrame');
+        const frameRect  = document.getElementById('imgEditorFrameRect');
+        const ph         = document.getElementById('imgEditorPlaceholder');
+        const phRect     = document.getElementById('imgEditorPlaceholderRect');
+
+        frame.style.display     = 'none';
+        frameRect.style.display = 'block';
+
+        document.getElementById('imgEditorTitle').innerHTML =
+            '<i class="fas fa-crop-alt me-2"></i>Atur Posisi &amp; Zoom Foto Galeri';
+
+        if (isSafeUrl(url)) {
+            frameRect.style.backgroundImage = `url('${url}')`;
+            if (phRect) phRect.style.display = 'none';
+        } else {
+            frameRect.style.backgroundImage = 'none';
+            if (phRect) phRect.style.display = 'flex';
+        }
+        if (ph) ph.style.display = 'none';
 
         document.getElementById('slScale').value = scale;
         document.getElementById('slPosX').value  = posX;
@@ -441,11 +355,11 @@ function _initImageEditorModal() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PHOTO INPUT GROUP — input URL + mini preview lingkaran + tombol
+// PHOTO INPUT GROUP (foto profil — lingkaran)
 // ═══════════════════════════════════════════════════════════════
 function createPhotoInputGroup(imgUrl = '', posX = 50, posY = 20, scale = 1, placeholder = 'URL Foto') {
-    const safeUrl  = isSafeUrl(imgUrl) ? imgUrl : '';
-    const wrapper  = document.createElement('div');
+    const safeUrl = isSafeUrl(imgUrl) ? imgUrl : '';
+    const wrapper = document.createElement('div');
     wrapper.setAttribute('data-photo-container', '');
     wrapper.dataset.posX  = posX;
     wrapper.dataset.posY  = posY;
@@ -458,7 +372,6 @@ function createPhotoInputGroup(imgUrl = '', posX = 50, posY = 20, scale = 1, pla
         <input type="url" class="form-control form-control-sm photo-img-input"
                value="${escapeHtml(safeUrl)}" placeholder="${escapeHtml(placeholder)}" maxlength="500">
         <div style="display:flex;align-items:center;gap:10px;">
-            <!-- Mini preview lingkaran pakai background-image -->
             <div class="photo-mini-circle" style="
                 width:52px; height:52px; border-radius:50%; flex-shrink:0;
                 border:2px solid #dee2e6; background-color:#e9ecef;
@@ -467,7 +380,6 @@ function createPhotoInputGroup(imgUrl = '', posX = 50, posY = 20, scale = 1, pla
                 background-position:${posX}% ${posY}%;
                 background-repeat:no-repeat;
             "></div>
-            <!-- Badge & tombol -->
             <div style="flex:1;min-width:0;">
                 <span class="img-pos-badge d-block mb-1"
                       style="font-size:10px;color:${isDefault ? '#adb5bd' : '#198754'};">
@@ -479,15 +391,13 @@ function createPhotoInputGroup(imgUrl = '', posX = 50, posY = 20, scale = 1, pla
             </div>
         </div>`;
 
-    // Update mini preview saat URL diubah
     const input      = wrapper.querySelector('.photo-img-input');
     const miniCircle = wrapper.querySelector('.photo-mini-circle');
     input.addEventListener('input', function () {
         const url = this.value.trim();
         miniCircle.style.backgroundImage = isSafeUrl(url) ? `url('${url}')` : 'none';
-        // Update preview modal jika sedang terbuka
-        const modal = document.getElementById('imgEditorModal');
-        if (modal?.style.display === 'flex') {
+        const editorModal = document.getElementById('imgEditorModal');
+        if (editorModal?.style.display === 'flex') {
             const frame = document.getElementById('imgEditorFrame');
             const ph    = document.getElementById('imgEditorPlaceholder');
             if (isSafeUrl(url)) {
@@ -500,7 +410,6 @@ function createPhotoInputGroup(imgUrl = '', posX = 50, posY = 20, scale = 1, pla
         }
     });
 
-    // Tombol buka editor
     wrapper.querySelector('.btn-atur-foto').addEventListener('click', () => {
         window._openImgEditor(wrapper);
     });
@@ -630,7 +539,6 @@ function addDivisiUI(divData = { nama: '', kadiv: {}, anggota: [] }) {
             <div class="anggota-container"></div>
         </div>`;
 
-    // Photo group Kadiv
     divEl.querySelector('.kadiv-img-wrapper').appendChild(
         createPhotoInputGroup(
             divData.kadiv?.img,
@@ -641,7 +549,6 @@ function addDivisiUI(divData = { nama: '', kadiv: {}, anggota: [] }) {
         )
     );
 
-    // Anggota
     const anggotaContainer = divEl.querySelector('.anggota-container');
     (divData.anggota || []).forEach(ang => anggotaContainer.appendChild(_createAnggotaRow(ang)));
 
@@ -686,67 +593,83 @@ function _createAnggotaRow(ang = {}) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// GALERI UI
+// GALERI UI — DENGAN KONTROL POSISI FOTO
 // ═══════════════════════════════════════════════════════════════
-function addGaleriUI(galData = {}) {
-    const galEl  = document.createElement('div');
+function addGaleriUI(galData = { url: '', caption: '', posX: 50, posY: 50, scale: 1 }) {
+    const galEl   = document.createElement('div');
     galEl.className = 'col-md-4 col-lg-3 galeri-item';
-    const safeUrl   = isSafeUrl(galData.url) ? galData.url : '';
-    const posX      = galData.posX  ?? 50;
-    const posY      = galData.posY  ?? 50;
-    const scale     = galData.scale ?? 1;
+
+    const safeUrl = isSafeUrl(galData.url) ? galData.url : '';
+    const posX    = galData.posX  ?? 50;
+    const posY    = galData.posY  ?? 50;
+    const scale   = galData.scale ?? 1;
     const isDefault = (scale === 1 && posX === 50 && posY === 50);
 
-    // Preview pakai background-image agar posisi terlihat persis seperti frontend
-    const previewBg = safeUrl ? `url('${safeUrl}')` : 'none';
+    // Simpan posisi di dataset container
+    galEl.dataset.posX  = posX;
+    galEl.dataset.posY  = posY;
+    galEl.dataset.scale = scale;
 
     galEl.innerHTML = `
-        <div class="card shadow-sm border-0 bg-light p-2 h-100 position-relative" data-gal-container
-             data-pos-x="${posX}" data-pos-y="${posY}" data-scale="${scale}">
+        <div class="card shadow-sm border-0 bg-light p-2 h-100 position-relative">
             <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 btn-del-galeri" style="z-index:5;">
                 <i class="fas fa-times"></i>
             </button>
-            <!-- Preview background-image seperti frontend -->
-            <div class="galeri-preview rounded mb-2" style="
-                height:120px; border-radius:6px;
+
+            <!-- Preview foto galeri pakai background-image agar posisi berlaku -->
+            <div class="galeri-bg-preview rounded mb-2" style="
+                height:120px;
                 background-color:#e9ecef;
-                background-image:${previewBg};
+                background-image:${safeUrl ? `url('${safeUrl}')` : 'none'};
                 background-size:${scale * 100}%;
                 background-position:${posX}% ${posY}%;
                 background-repeat:no-repeat;
             "></div>
+
             <input type="url" class="form-control form-control-sm mb-1 galeri-url"
                    value="${escapeHtml(safeUrl)}" placeholder="URL Foto Valid" maxlength="500">
-            <!-- Badge posisi + tombol atur -->
-            <div class="d-flex align-items-center gap-1 mb-1">
-                <span class="galeri-pos-badge flex-fill" style="font-size:10px;color:${isDefault ? '#adb5bd' : '#198754'};">
-                    zoom:${parseFloat(scale).toFixed(1)}x pos:${Math.round(posX)}/${Math.round(posY)}
+            <input type="text" class="form-control form-control-sm mb-2 galeri-caption"
+                   value="${escapeHtml(galData.caption || '')}" placeholder="Caption (Opsional)" maxlength="150">
+
+            <!-- Badge posisi & tombol atur -->
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="galeri-pos-badge" style="font-size:10px;color:${isDefault ? '#adb5bd' : '#198754'};">
+                    zoom:${parseFloat(scale).toFixed(1)}× pos:${Math.round(posX)}/${Math.round(posY)}
                 </span>
-                <button type="button" class="btn btn-outline-primary btn-sm btn-atur-galeri py-0" style="font-size:11px;white-space:nowrap;">
-                    <i class="fas fa-crop-alt me-1"></i>Atur Foto
+                <button type="button" class="btn btn-outline-primary btn-sm btn-atur-galeri py-0 px-2" style="font-size:11px;">
+                    <i class="fas fa-crop-alt me-1"></i>Atur Posisi
                 </button>
             </div>
-            <input type="text" class="form-control form-control-sm galeri-caption"
-                   value="${escapeHtml(galData.caption || '')}" placeholder="Caption (Opsional)" maxlength="150">
         </div>`;
 
-    const card     = galEl.querySelector('[data-gal-container]');
-    const urlInput = galEl.querySelector('.galeri-url');
-    const preview  = galEl.querySelector('.galeri-preview');
-    const badge    = galEl.querySelector('.galeri-pos-badge');
-
-    // Update preview saat URL berubah
+    // Live preview saat URL diubah
+    const urlInput  = galEl.querySelector('.galeri-url');
+    const bgPreview = galEl.querySelector('.galeri-bg-preview');
     urlInput.addEventListener('input', function () {
         const url = this.value.trim();
-        preview.style.backgroundImage = isSafeUrl(url) ? `url('${url}')` : 'none';
+        bgPreview.style.backgroundImage = isSafeUrl(url) ? `url('${url}')` : 'none';
+        // Sync ke frame rect di modal jika sedang terbuka
+        const editorModal = document.getElementById('imgEditorModal');
+        if (editorModal?.style.display === 'flex') {
+            const frameRect = document.getElementById('imgEditorFrameRect');
+            const phRect    = document.getElementById('imgEditorPlaceholderRect');
+            if (isSafeUrl(url)) {
+                frameRect.style.backgroundImage = `url('${url}')`;
+                if (phRect) phRect.style.display = 'none';
+            } else {
+                frameRect.style.backgroundImage = 'none';
+                if (phRect) phRect.style.display = 'flex';
+            }
+        }
     });
 
-    // Tombol Atur Foto → buka editor galeri
+    // Tombol atur posisi galeri
     galEl.querySelector('.btn-atur-galeri').addEventListener('click', () => {
-        _openGaleriImgEditor(card, urlInput.value.trim());
+        window._openGaleriEditor(galEl);
     });
 
     galEl.querySelector('.btn-del-galeri').addEventListener('click', () => galEl.remove());
+
     document.getElementById('galeriContainer').appendChild(galEl);
 }
 
@@ -800,16 +723,14 @@ async function handleSaveStruktur() {
         }
     });
 
+    // Galeri — sekarang simpan posX, posY, scale juga
     document.querySelectorAll('.galeri-item').forEach(galEl => {
         const url     = galEl.querySelector('.galeri-url').value.trim();
         const caption = galEl.querySelector('.galeri-caption').value.trim();
-        const card    = galEl.querySelector('[data-gal-container]');
-        if (url && isSafeUrl(url)) newData.galeri.push({
-            url, caption,
-            posX : parseFloat(card?.dataset.posX  ?? 50),
-            posY : parseFloat(card?.dataset.posY  ?? 50),
-            scale: parseFloat(card?.dataset.scale ?? 1),
-        });
+        const posX    = parseFloat(galEl.dataset.posX  ?? 50);
+        const posY    = parseFloat(galEl.dataset.posY  ?? 50);
+        const scale   = parseFloat(galEl.dataset.scale ?? 1);
+        if (url && isSafeUrl(url)) newData.galeri.push({ url, caption, posX, posY, scale });
     });
 
     _allStrukturData[periode] = newData;
