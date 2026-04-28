@@ -60,115 +60,121 @@ function _initImageEditorModal() {
     modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);justify-content:center;align-items:center;';
 
     modal.innerHTML = `
-        <div style="background:#fff;border-radius:16px;width:min(500px,95vw);max-height:90vh;overflow-y:auto;overflow-x:hidden;box-shadow:0 25px 60px rgba(0,0,0,0.4);">
-            <!-- Header -->
-            <div style="background:#212529;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+        <div style="
+            background:#fff; border-radius:16px; width:min(500px,95vw);
+            max-height:92vh; display:flex; flex-direction:column;
+            box-shadow:0 25px 60px rgba(0,0,0,0.4); overflow:hidden;">
+
+            <!-- ── HEADER (sticky atas) ── -->
+            <div style="background:#212529;color:#fff;padding:14px 20px;
+                        display:flex;justify-content:space-between;align-items:center;
+                        flex-shrink:0;">
                 <span style="font-weight:700;font-size:15px;" id="imgEditorTitle">
                     <i class="fas fa-crop-alt me-2"></i>Atur Posisi &amp; Zoom Foto
                 </span>
                 <button id="imgEditorClose" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>
             </div>
 
-            <!-- Preview — bisa lingkaran (profil) atau persegi (galeri) -->
-            <div style="background:#f4f6f9;padding:14px 16px 10px;text-align:center;">
-                <p style="font-size:12px;color:#6c757d;margin-bottom:12px;">
-                    <i class="fas fa-info-circle me-1 text-primary"></i>
-                    Preview <strong>persis seperti di website</strong>. Drag foto atau pakai slider.
-                </p>
+            <!-- ── KONTEN TENGAH (bisa scroll jika layar kecil) ── -->
+            <div style="flex:1;overflow-y:auto;overflow-x:hidden;">
 
-                <!-- Bingkai profil (lingkaran) -->
-                <div id="imgEditorFrame" style="
-                    width:160px; height:160px; border-radius:50%;
-                    border:4px solid #0a192f; margin:0 auto 8px;
-                    background-color:#e9ecef; background-repeat:no-repeat;
-                    background-size:100%; background-position:50% 20%;
-                    cursor:grab; user-select:none;
-                    box-shadow:0 4px 20px rgba(0,0,0,0.25);
-                    position:relative;">
-                    <div id="imgEditorPlaceholder" style="
-                        position:absolute;inset:0;display:flex;flex-direction:column;
-                        align-items:center;justify-content:center;color:#adb5bd;font-size:12px;">
-                        <i class="fas fa-image fa-2x mb-1"></i>
-                        <span>Belum ada foto</span>
+                <!-- Preview -->
+                <div style="background:#f4f6f9;padding:12px 16px 8px;text-align:center;">
+                    <p style="font-size:11px;color:#6c757d;margin-bottom:10px;">
+                        <i class="fas fa-info-circle me-1 text-primary"></i>
+                        Preview <strong>persis seperti di website</strong>. Drag atau pakai slider.
+                    </p>
+
+                    <!-- Bingkai profil (lingkaran) -->
+                    <div id="imgEditorFrame" style="
+                        width:140px; height:140px; border-radius:50%;
+                        border:4px solid #0a192f; margin:0 auto 6px;
+                        background-color:#e9ecef; background-repeat:no-repeat;
+                        background-size:100%; background-position:50% 20%;
+                        cursor:grab; user-select:none;
+                        box-shadow:0 4px 20px rgba(0,0,0,0.25);
+                        position:relative;">
+                        <div id="imgEditorPlaceholder" style="
+                            position:absolute;inset:0;display:flex;flex-direction:column;
+                            align-items:center;justify-content:center;color:#adb5bd;font-size:12px;">
+                            <i class="fas fa-image fa-2x mb-1"></i>
+                            <span>Belum ada foto</span>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Bingkai galeri (persegi panjang responsif, rasio 4:3) -->
-                <div id="imgEditorFrameRectOuter" style="
-                    display:none;
-                    width:100%;
-                    max-width:380px;
-                    margin:0 auto 8px;
-                    padding:0 4px;">
-                    <!-- Wrapper rasio 4:3 pakai padding-top trick -->
-                    <div style="position:relative; width:100%; padding-top:75%; border-radius:10px; overflow:hidden;
-                                border:3px solid #0a192f; box-shadow:0 4px 20px rgba(0,0,0,0.25);">
-                        <div id="imgEditorFrameRect" style="
-                            position:absolute; inset:0;
-                            background-color:#e9ecef; background-repeat:no-repeat;
-                            background-size:100%; background-position:50% 50%;
-                            cursor:grab; user-select:none;">
-                            <div id="imgEditorPlaceholderRect" style="
-                                position:absolute;inset:0;display:flex;flex-direction:column;
-                                align-items:center;justify-content:center;color:#adb5bd;font-size:12px;">
-                                <i class="fas fa-image fa-2x mb-1"></i>
-                                <span>Belum ada foto</span>
+                    <!-- Bingkai galeri (persegi panjang responsif rasio 4:3) -->
+                    <div id="imgEditorFrameRectOuter" style="display:none;width:100%;max-width:400px;margin:0 auto 6px;padding:0 8px;">
+                        <div style="position:relative;width:100%;padding-top:75%;border-radius:10px;overflow:hidden;
+                                    border:3px solid #0a192f;box-shadow:0 4px 20px rgba(0,0,0,0.25);">
+                            <div id="imgEditorFrameRect" style="
+                                position:absolute;inset:0;
+                                background-color:#e9ecef;background-repeat:no-repeat;
+                                background-size:100%;background-position:50% 50%;
+                                cursor:grab;user-select:none;">
+                                <div id="imgEditorPlaceholderRect" style="
+                                    position:absolute;inset:0;display:flex;flex-direction:column;
+                                    align-items:center;justify-content:center;color:#adb5bd;font-size:12px;">
+                                    <i class="fas fa-image fa-2x mb-1"></i>
+                                    <span>Belum ada foto</span>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <p style="font-size:10px;color:#adb5bd;margin-bottom:0;">
+                        <i class="fas fa-mouse me-1"></i>Drag untuk geser &nbsp;|&nbsp; Scroll untuk zoom
+                    </p>
                 </div>
 
-                <p style="font-size:11px;color:#adb5bd;">
-                    <i class="fas fa-mouse me-1"></i>Drag untuk geser &nbsp;|&nbsp; Scroll untuk zoom
-                </p>
+                <!-- Slider kontrol -->
+                <div style="padding:14px 20px 16px;">
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <label style="font-size:13px;font-weight:700;color:#495057;">
+                                <i class="fas fa-search me-1 text-primary"></i>Zoom
+                            </label>
+                            <span id="lblScale" style="font-size:13px;font-weight:700;color:#0d6efd;">1.0×</span>
+                        </div>
+                        <input type="range" id="slScale" min="0.5" max="3" step="0.05" value="1" class="form-range">
+                        <div class="d-flex justify-content-between" style="font-size:10px;color:#adb5bd;">
+                            <span>0.5× (perkecil)</span><span>3.0× (perbesar)</span>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <label style="font-size:13px;font-weight:700;color:#495057;">
+                                <i class="fas fa-arrows-alt-h me-1 text-success"></i>Geser Kiri ↔ Kanan
+                            </label>
+                            <span id="lblPosX" style="font-size:13px;font-weight:700;color:#198754;">50%</span>
+                        </div>
+                        <input type="range" id="slPosX" min="0" max="100" step="1" value="50" class="form-range">
+                        <div class="d-flex justify-content-between" style="font-size:10px;color:#adb5bd;">
+                            <span>← Kiri</span><span>Kanan →</span>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <label style="font-size:13px;font-weight:700;color:#495057;">
+                                <i class="fas fa-arrows-alt-v me-1 text-warning"></i>Geser Atas ↕ Bawah
+                            </label>
+                            <span id="lblPosY" style="font-size:13px;font-weight:700;color:#ffc107;">50%</span>
+                        </div>
+                        <input type="range" id="slPosY" min="0" max="100" step="1" value="50" class="form-range">
+                        <div class="d-flex justify-content-between" style="font-size:10px;color:#adb5bd;">
+                            <span>↑ Atas</span><span>Bawah ↓</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Kontrol slider -->
-            <div style="padding:18px 20px 20px;">
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <label style="font-size:13px;font-weight:700;color:#495057;">
-                            <i class="fas fa-search me-1 text-primary"></i>Zoom
-                        </label>
-                        <span id="lblScale" style="font-size:13px;font-weight:700;color:#0d6efd;">1.0×</span>
-                    </div>
-                    <input type="range" id="slScale" min="0.5" max="3" step="0.05" value="1" class="form-range">
-                    <div class="d-flex justify-content-between" style="font-size:11px;color:#adb5bd;">
-                        <span>0.5× (perkecil)</span><span>3.0× (perbesar)</span>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <label style="font-size:13px;font-weight:700;color:#495057;">
-                            <i class="fas fa-arrows-alt-h me-1 text-success"></i>Geser Kiri ↔ Kanan
-                        </label>
-                        <span id="lblPosX" style="font-size:13px;font-weight:700;color:#198754;">50%</span>
-                    </div>
-                    <input type="range" id="slPosX" min="0" max="100" step="1" value="50" class="form-range">
-                    <div class="d-flex justify-content-between" style="font-size:11px;color:#adb5bd;">
-                        <span>← Kiri</span><span>Kanan →</span>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <div class="d-flex justify-content-between mb-1">
-                        <label style="font-size:13px;font-weight:700;color:#495057;">
-                            <i class="fas fa-arrows-alt-v me-1 text-warning"></i>Geser Atas ↕ Bawah
-                        </label>
-                        <span id="lblPosY" style="font-size:13px;font-weight:700;color:#ffc107;">50%</span>
-                    </div>
-                    <input type="range" id="slPosY" min="0" max="100" step="1" value="50" class="form-range">
-                    <div class="d-flex justify-content-between" style="font-size:11px;color:#adb5bd;">
-                        <span>↑ Atas</span><span>Bawah ↓</span>
-                    </div>
-                </div>
-                <div class="d-flex gap-2">
-                    <button id="imgEditorReset" class="btn btn-outline-secondary btn-sm flex-fill">
-                        <i class="fas fa-undo me-1"></i>Reset
-                    </button>
-                    <button id="imgEditorApply" class="btn btn-primary btn-sm flex-fill fw-bold">
-                        <i class="fas fa-check me-1"></i>Terapkan
-                    </button>
-                </div>
+            <!-- ── TOMBOL (sticky bawah, selalu kelihatan) ── -->
+            <div style="padding:12px 20px;border-top:1px solid #dee2e6;display:flex;gap:8px;flex-shrink:0;background:#fff;">
+                <button id="imgEditorReset" class="btn btn-outline-secondary btn-sm flex-fill">
+                    <i class="fas fa-undo me-1"></i>Reset
+                </button>
+                <button id="imgEditorApply" class="btn btn-primary btn-sm flex-fill fw-bold">
+                    <i class="fas fa-check me-1"></i>Terapkan
+                </button>
             </div>
         </div>`;
 
