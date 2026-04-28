@@ -60,7 +60,7 @@ function _initImageEditorModal() {
     modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);justify-content:center;align-items:center;';
 
     modal.innerHTML = `
-        <div style="background:#fff;border-radius:16px;width:min(500px,95vw);overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,0.4);">
+        <div style="background:#fff;border-radius:16px;width:min(500px,95vw);max-height:90vh;overflow-y:auto;overflow-x:hidden;box-shadow:0 25px 60px rgba(0,0,0,0.4);">
             <!-- Header -->
             <div style="background:#212529;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-weight:700;font-size:15px;" id="imgEditorTitle">
@@ -70,7 +70,7 @@ function _initImageEditorModal() {
             </div>
 
             <!-- Preview — bisa lingkaran (profil) atau persegi (galeri) -->
-            <div style="background:#f4f6f9;padding:20px;text-align:center;">
+            <div style="background:#f4f6f9;padding:14px 16px 10px;text-align:center;">
                 <p style="font-size:12px;color:#6c757d;margin-bottom:12px;">
                     <i class="fas fa-info-circle me-1 text-primary"></i>
                     Preview <strong>persis seperti di website</strong>. Drag foto atau pakai slider.
@@ -96,8 +96,10 @@ function _initImageEditorModal() {
                 <!-- Bingkai galeri (persegi panjang responsif, rasio 4:3) -->
                 <div id="imgEditorFrameRectOuter" style="
                     display:none;
-                    width:min(320px, 80vw);
-                    margin:0 auto 8px;">
+                    width:100%;
+                    max-width:380px;
+                    margin:0 auto 8px;
+                    padding:0 4px;">
                     <!-- Wrapper rasio 4:3 pakai padding-top trick -->
                     <div style="position:relative; width:100%; padding-top:75%; border-radius:10px; overflow:hidden;
                                 border:3px solid #0a192f; box-shadow:0 4px 20px rgba(0,0,0,0.25);">
